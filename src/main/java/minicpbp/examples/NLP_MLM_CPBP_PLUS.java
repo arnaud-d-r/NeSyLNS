@@ -82,7 +82,6 @@ public class NLP_MLM_CPBP_PLUS {
 
    public static void main(String[] args) throws Exception {
     
-        System.out.println("30 novembre");
         int port = Integer.parseInt(args[1]);
         final int NUM_ITERATIONS = Integer.parseInt(args[3]);
         final double weight = Double.parseDouble(args[0]);
