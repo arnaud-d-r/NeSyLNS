@@ -76,13 +76,12 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ibm.icu.impl.Pair;
 
-public class NLP_MLM_v1_2 {
+public class NLP_MLM_CPBP {
     final static String mask_string = "[MASK]";
 
 
    public static void main(String[] args) throws Exception {
     
-        System.out.println("30 novembre");
         int port = Integer.parseInt(args[1]);
         final int NUM_ITERATIONS = Integer.parseInt(args[3]);
         final double weight = Double.parseDouble(args[0]);

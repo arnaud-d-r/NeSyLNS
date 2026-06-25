@@ -76,7 +76,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ibm.icu.impl.Pair;
 
-public class NLP_MLM_CPBP+ {
+public class NLP_MLM_CPBP_PLUS {
     final static String mask_string = "[MASK]";
 
 
