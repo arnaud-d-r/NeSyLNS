@@ -1,0 +1,56 @@
+# ====================================================================
+# Project Specific Exclusions
+# ====================================================================
+# Ignore Maven build output 
+target/
+dependency-reduced-pom.xml
+
+# Ignore local experimental evaluation output
+output/
+
+# ====================================================================
+# Java / Maven Defaults
+# ====================================================================
+*.class
+*.log
+*.ctxt
+.mtj.tmp/
+
+# Crash logs
+hs_err_pid*
+replay_pid*
+
+# ====================================================================
+# Python
+# ====================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv
+venv/
+test_env/
+env/
+
+# ====================================================================
+# IDE Configurations
+# ====================================================================
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# Eclipse
+.metadata/
+.classpath
+.project
+.settings/
+
+# OS-specific clutter
+.DS_Store
+Thumbs.db
