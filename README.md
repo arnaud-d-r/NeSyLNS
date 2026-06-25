@@ -74,7 +74,7 @@ Because cluster job scripts (`.sh` files) execute the pre-compiled code directly
 Run the following command at the repository root to download external dependencies (such as ANTLR and Jackson) and package the solver into a standalone executable:
 
 ```bash
-mvn clean install -Dmaven.test.skip=true
+mvn clean install -DskipTests
 
 ```
 
