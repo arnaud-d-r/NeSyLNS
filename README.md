@@ -59,7 +59,7 @@ NeSyLNS_article_repo/
 Ensure you have Python 3.9+ and a CUDA-compatible environment for LLM inference.
 
 ```bash
-python3 -m venv venv
+python -m venv venv
 source venv/bin/activate  # On Windows: .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
