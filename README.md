@@ -59,7 +59,7 @@ NeSyLNS_article_repo/
 Ensure you have Python 3.9+ and a CUDA-compatible environment for LLM inference. You should download the library pyTorch based on your CUDA version at https://pytorch.org/get-started/locally/.
 
 ```bash
-python3 -m venv venv
+python -m venv venv
 source venv/bin/activate  # On Windows: .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
@@ -74,7 +74,7 @@ Because cluster job scripts (`.sh` files) execute the pre-compiled code directly
 Run the following command at the repository root to download external dependencies (such as ANTLR and Jackson) and package the solver into a standalone executable:
 
 ```bash
-mvn clean install -Dmaven.test.skip=true
+mvn clean install -DskipTests
 
 ```
 
