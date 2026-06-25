@@ -56,7 +56,7 @@ NeSyLNS_article_repo/
 
 ### 1. Python Environment
 
-Ensure you have Python 3.9+ and a CUDA-compatible environment for LLM inference.
+Ensure you have Python 3.9+ and a CUDA-compatible environment for LLM inference. You should download the library pyTorch based on your CUDA version at https://pytorch.org/get-started/locally/.
 
 ```bash
 python3 -m venv venv

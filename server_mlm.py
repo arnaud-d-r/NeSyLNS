@@ -78,7 +78,7 @@ app   = Flask(__name__)
 mutex = Lock()
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
+'''
 def get_mask_distributions(sentence: str) -> dict:
     """Return softmax probability distributions for each mask position in the sentence.
 
@@ -94,8 +94,11 @@ def get_mask_distributions(sentence: str) -> dict:
     mask_positions.sort()
 
     # Map each mask token position back to its word index in the original sentence
-    words = sentence.split()
-    mask_word_positions = [i for i, w in enumerate(words) if w == MASK_TOKEN]
+    if sentence.startswith("<s>"):
+        sentence = sentence[len("<s>"):].lstrip()
+    if sentence.endswith("."):
+        sentence = sentence[:-1].rstrip()
+    mask_word_positions = [i for i, w in enumerate(sentence.split()) if w == MASK_TOKEN]
 
     if len(mask_positions) != len(mask_word_positions):
         print(f"[warn] mask count mismatch — "
@@ -111,6 +114,40 @@ def get_mask_distributions(sentence: str) -> dict:
             "tokens":             list(range(len(probs))),
             "probs":              probs,
         }
+    return distributions
+'''
+
+def get_mask_distributions(sentence):
+    inputs = tokenizer(sentence, return_tensors="pt").to(device)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+
+    mask_token_id = tokenizer.mask_token_id
+    mask_positions = (inputs.input_ids == mask_token_id).nonzero(as_tuple=True)[1].tolist()
+    mask_positions.sort()
+
+    if sentence.startswith("<s>"):
+        sentence = sentence[len("<s>"):].lstrip()
+    if sentence.endswith("."):
+        sentence = sentence[:-1].rstrip()
+    mask_word_positions = [i for i, x in enumerate(sentence.split()) if x == tokenizer.mask_token]
+    
+    if len(mask_positions) != len(mask_word_positions):
+        print(mask_positions, mask_word_positions)
+        print(sentence)
+
+    distributions = {}
+    for idx_in_mask_positions, pos in enumerate(mask_positions):
+        probs = torch.softmax(logits[0, pos], dim=-1).cpu().tolist()
+        mask_word_pos = mask_word_positions[idx_in_mask_positions] if idx_in_mask_positions < len(mask_word_positions) else None
+        distributions[int(pos)] = {
+            "mask_index": int(pos),
+            "mask_word_position": mask_word_pos,
+            "tokens": list(range(len(probs))),
+            "probs": probs
+        }
+
     return distributions
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -130,14 +167,13 @@ def get_mask_string():
 def mlm_predict():
     """Return per-mask token probability distributions.
 
-    POST body (JSON):
-        { "sentence": "The cat sat on the [MASK]." }
+    POST body (String):
+        sentence: "The cat sat on the [MASK]."
 
     The mask token must match the model's own mask token (use /mask_str to retrieve it).
     """
     try:
-        data     = request.get_json()
-        sentence = data["sentence"]
+        sentence = request.data.decode()
 
         if MASK_TOKEN not in sentence:
             return {"error": f"Sentence must contain the mask token: '{MASK_TOKEN}'"}, 400

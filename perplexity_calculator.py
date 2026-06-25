@@ -164,7 +164,7 @@ def build_best_perplexity_evolution(logs: List[Dict]) -> List[Dict]:
 
 
 
-def update_json_file(filepath: str, calculator: PerplexityCalculator, 
+def update_json_file(filepath: Path, calculator: PerplexityCalculator, 
                      dry_run: bool = False, rebuild_evolution: bool = True) -> Dict:
     """
     Update perplexity scores in a JSON file using batched processing.
@@ -257,7 +257,7 @@ def update_json_file(filepath: str, calculator: PerplexityCalculator,
     # Write updated data back to file
     if not dry_run:
         # Create backup
-        backup_path = filepath + '.backup'
+        backup_path = Path.joinpath(filepath.parent, f"{filepath.stem}.backup.json")
         with open(backup_path, 'w') as f:
             with open(filepath, 'r') as original:
                 json.dump(json.load(original), f, indent=2)
@@ -349,6 +349,9 @@ def main():
     
     # Process each file
     for filepath in json_files:
+        if filepath.stem.endswith('.backup'):
+            print(f"Skipping backup file: {filepath}")
+            continue
         try:
             updated_data = update_json_file(
                 filepath, 

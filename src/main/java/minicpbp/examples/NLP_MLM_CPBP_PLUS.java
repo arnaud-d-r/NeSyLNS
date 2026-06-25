@@ -112,12 +112,12 @@ public class NLP_MLM_CPBP_PLUS {
             case "AUTHORS":
                 refType = MNREAD_MLM_Config.RefType.AUTHORS;
                 break;
-            case "CP":
-                refType = MNREAD_MLM_Config.RefType.CP;
-                break;
             case "CP_LLM":
                 refType = MNREAD_MLM_Config.RefType.CP_LLM;
                 break;
+            case "CP":
+                refType = MNREAD_MLM_Config.RefType.CP;
+                break;            
             default:
                 refType = MNREAD_MLM_Config.RefType.DEFAULT;
                 break;
@@ -163,16 +163,16 @@ public class NLP_MLM_CPBP_PLUS {
                     break;
                 }
                 lineNumber++;
-            }
-            if (initial_sentence == null) {
+            }if (initial_sentence == null) {
                 throw new RuntimeException("Could not find initial sentence at line " + seed);
             }
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Error reading initial sentence from file: " + e.getMessage());
         }
-            
+
         
+
         double ppl_init = -1.0;
         base_sentence.add(new ScoredSentence(initial_sentence, ppl_init));
 
@@ -304,23 +304,23 @@ public class NLP_MLM_CPBP_PLUS {
         cb.build(new SolverContext(cp, corpusDomains.size(), -1, -1, charNum, lengthTokens, word_index, words, line));
 
 
-
         Random rand = new Random();
 
 
 
-
+        String[] current_sentence= new String[1];
+        String[] original_sentence= new String[1];
 
         IntVar[] allVars = new IntVar[word_index.length + line.length];
         System.arraycopy(word_index, 0, allVars, 0, word_index.length);
         System.arraycopy(line, 0, allVars, word_index.length, line.length);
-        DFSearch dfs = makeDfs(cp, maxMarginalStrength(allVars));
+        DFSearch dfs = makeDfs(cp, maxMarginalStrengthWithOracle(allVars," "+mask_string ,port, word_index, corpusDomainsSet, words,  w, ORACLE_TOP_K));
         final int[] l = new int[]{-1};
 
-        String[] current_sentence= new String[1];
-        String[] original_sentence= new String[1];
 
-        
+
+
+
         ArrayList<ScoredSentence> candidateSentences = new ArrayList<>();
 
         dfs.onSolution(() -> {
@@ -339,7 +339,6 @@ public class NLP_MLM_CPBP_PLUS {
                 true_tokens[i] = assigned;
             }
             solution = solution.trim();
-
             solution += ".";
 
             HttpRequest request2 = HttpRequest.newBuilder()
@@ -372,17 +371,16 @@ public class NLP_MLM_CPBP_PLUS {
                 double ppl = -1.0;
                 ScoredSentence currentSentence = new ScoredSentence(solution, ppl);
                 System.out.println("Solution found: " + solution + " with perplexity " + ppl);
-                for (ScoredSentence s : base_sentence) {
-                    if (s.getSentence().equals(solution)) {
-                        System.out.println("Sentence already in base sentences, skipping.");
-                        return;
-                    }
+                if (base_sentence.contains(currentSentence)) {
+                    System.out.println("Duplicate sentence, skipping: " + solution);
+                    return;
                 }
+
+                
                 if(configArg.equals("MNREAD_MLM_Config") ){ 
                     if (cb.isValid()) {
                         Logging new_log = new Logging(solution, original_sentence[0], ppl, true_tokens, tokens_used, System.currentTimeMillis() - startTime);
                         logs.add(new_log);
-                        
                     } 
                     
                     base_sentence.add(currentSentence);
@@ -406,7 +404,7 @@ public class NLP_MLM_CPBP_PLUS {
         while (l[0] < NUM_ITERATIONS-1) {
             l[0]++;
 
-            dfs.solveSubjectTo(statistics -> statistics.numberOfSolutions() >= solutionLimit || statistics.numberOfFailures() >= failureLimit, () -> {
+            SearchStatistics stats=dfs.solveSubjectTo(statistics -> statistics.numberOfSolutions() >= solutionLimit || statistics.numberOfFailures() >= failureLimit, () -> {
                         if (candidateSentences.isEmpty()) {
                             candidateSentences.add(base_sentence.get(base_sentence.size() - 1));
                         }
@@ -414,32 +412,17 @@ public class NLP_MLM_CPBP_PLUS {
                         original_sentence[0] = current_sentence[0];
                         candidateSentences.clear();
 
-                        Iterator<Constraint> iteratorC = cp.getConstraints().iterator();
-                        while (iteratorC.hasNext()) {
-                            Constraint c = iteratorC.next();
-                            if (c.getName().equals("Oracle")) {
-                                c.setActive(false);
+                        int[][] neg_table = new int[base_sentence.size()][word_index.length];
+                        for (ScoredSentence sentence : base_sentence){
+                            String[] words_in_sentence = sentence.getSentence().split(" ");
+                            for (int idx = 0; idx < word_index.length; idx++) {
+                                String word = words_in_sentence[idx];
+                                int word_idx = words.indexOf(" " + word);
+                                neg_table[base_sentence.indexOf(sentence)][idx] = word_idx;
                             }
                         }
+                        cp.post(new NegTableCT(word_index, neg_table));
 
-                        try{
-                            int[][] neg_table = new int[base_sentence.size()][word_index.length];
-                            for (ScoredSentence sentence : base_sentence){
-                                String[] words_in_sentence = sentence.getSentence().split(" ");
-                                for (int idx = 0; idx < word_index.length; idx++) {
-                                    String word = words_in_sentence[idx];
-                                    int word_idx = words.indexOf(" " + word);
-                                    neg_table[base_sentence.indexOf(sentence)][idx] = word_idx;
-                                }
-                                System.out.println("Neg table row for sentence: " + sentence.getSentence() + " -> " + Arrays.toString(neg_table[base_sentence.indexOf(sentence)]));
-                            }
-                            cp.post(new NegTableCT(word_index, neg_table));
-                        }
-                        catch(Exception e){
-                            System.out.println("Error posting NegTableCT constraint: " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                        
                         System.out.println("Current sentence: " + current_sentence[0]);
 
                         String[] sentenceWords = current_sentence[0].split(" ");
@@ -457,8 +440,8 @@ public class NLP_MLM_CPBP_PLUS {
                                 masked_indexs.add(idx);
                             }
                         }
+
                         cp.fixPoint();
-                        
 
                         
                         HttpRequest request = HttpRequest.newBuilder()
@@ -571,16 +554,16 @@ public class NLP_MLM_CPBP_PLUS {
     result.put("config", configArg);
     result.put("seed", seed);
     result.put("sentence_builder", sentenceBuilderArg);
+    result.put("ref_type", refTypeArg);
     result.put("oracle_top_k", oracle_top_k);
     result.put("mask_percent", mask_percent);
-    result.put("ref_type", refTypeArg);
     result.put("date", java.time.LocalDateTime.now().toString());  
     result.put("time", (System.currentTimeMillis() - startTime) / 1000.0);
     result.put("base_sentence", base_sentence.get(0));
     result.put("logs", logs);
     String OUTPUT_DIR = args.length > 3 ? args[2] : "./outputs";
     Files.createDirectories(Paths.get(OUTPUT_DIR));
-    String outputFileName = OUTPUT_DIR + "/result"+configArg+ "_NLP_MLM_v2_" + System.currentTimeMillis()  + ".json";
+    String outputFileName = OUTPUT_DIR + "/result"+configArg+ "_NLP_MLM_CPBP_PLUS_" + System.currentTimeMillis()  + ".json";
     objectMapper.writerWithDefaultPrettyPrinter().writeValue(Paths.get(outputFileName).toFile(), result);
     }
     catch (Exception e) {
@@ -589,7 +572,7 @@ public class NLP_MLM_CPBP_PLUS {
             // Write error to output file
             String OUTPUT_DIR = args.length > 3 ? args[2] : "./outputs";
             Files.createDirectories(Paths.get(OUTPUT_DIR));
-            String outputFileName = OUTPUT_DIR + "/result"+configArg+ "_NLP_MLM_v2_" + System.currentTimeMillis()  + "_error.json";
+            String outputFileName = OUTPUT_DIR + "/result"+configArg+ "_NLP_MLM_CPBP_PLUS_" + System.currentTimeMillis()  + "_error.json";
             Map<String, Object> errorResult = new LinkedHashMap<>();
             errorResult.put("status", "error");
             errorResult.put("config", configArg);

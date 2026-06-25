@@ -17,7 +17,7 @@ public class CollieSent1_MLM_Config implements ConstraintBuilder {
 
     @Override
     public String getInstruction() {
-        return "Please generate a sentence with exactly 82 characters. Include whitespace into your character count. Talk about fruits and the beach.";
+        return "Please generate a sentence with exactly 82 characters. Include whitespace into your character count.";
     }
 
     

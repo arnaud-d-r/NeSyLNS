@@ -196,7 +196,7 @@ def accumulate_summary(architecture, problem, sentenceBuilder, ref, summary, see
     
 
 for file_path in folder_path.glob("*.json"):
-    if "evaluation_results_" in file_path.stem or "_error" in file_path.stem:
+    if "evaluation_results_" in file_path.stem or "_error" in file_path.stem or "backup" in file_path.stem:
         continue  # skip already processed files
     print("Processing:", file_path)
 
@@ -257,16 +257,14 @@ for file_path in folder_path.glob("*.json"):
         architecture = data.get("config", "default")
     else :
         architecture = file_path.stem
-    if "v1_2" in architecture:
+    if "CPBP_PLUS" in architecture:
         architecture = "CPBP+"
-    elif "no_BP" in architecture or "noBP" in architecture:
+    elif "CP" in architecture:
         architecture = "CP"
-    elif "v2" in architecture:
+    elif "CPBP" in architecture:
         architecture = "CPBP"
-    elif "v1" in architecture:
-        architecture = "skip"
     else:
-        raise ValueError(f"Config 'name' must contain 'NLM_MLM_v1' or 'NLM_MLM_v2', got: {file_path.stem}")
+        raise ValueError(f"Config 'name' must contain 'CP', 'CPBP' or 'CPBP_PLUS', got: {file_path.stem}")
     
 
     
@@ -481,17 +479,14 @@ SB_STYLE = {
 
 for problem_key, refseed_data in problems.items():
 
-    # Extraire toutes les refs
     refs = sorted(set(ref for (ref, seed) in refseed_data.keys()))
 
     for ref in refs:
-        # Extraire les seeds pour cette ref
         seeds = sorted(seed for (r, seed) in refseed_data.keys() if r == ref)
         n = len(seeds)
         if n == 0:
             continue
 
-        # Créer la grille de subplots
         ncols = min(2, n)
         nrows = math.ceil(n / ncols)
         fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 4 * nrows), squeeze=False)
@@ -505,7 +500,6 @@ for problem_key, refseed_data in problems.items():
             plotted = False
             max_score_subplot = 0
 
-            # Tracer chaque (arch, sentenceBuilder)
             for (arch, sb), runs in sorted(configs.items()):
                 if not runs:
                     continue
@@ -536,7 +530,6 @@ for problem_key, refseed_data in problems.items():
 
                 plotted = True
 
-            # Ligne de base
             base_key = (problem_key, seed, ref)
             if base_key in base_seed:
                 base_ppl = base_seed[base_key]
@@ -564,7 +557,6 @@ for problem_key, refseed_data in problems.items():
             else:
                 ax.axis("off")
 
-        # Masquer les axes inutilisés
         for j in range(n, len(axes_flat)):
             axes_flat[j].axis("off")
 
